@@ -57,14 +57,6 @@ app/build/outputs/apk/release/app-release.apk
 
 ---
 
-## 🧑‍💻 Getting Started
-
-- Clone the repository:
-  git clone `https://github.com/AG-code32/CoffeeShopApp.git`
-- Open with Android Studio
-- Connect a device or emulator
-- Run the app and test the features
-
 ## 👨‍💼 About the Developer
 
 Hi, I'm Gerson Yance, an Android Developer passionate about building intuitive, user-friendly mobile apps.
