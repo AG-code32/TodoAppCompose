@@ -53,7 +53,9 @@ app/build/outputs/apk/release/app-release.apk
 
 📂 Related Projects
 
-  - Check out my other Android project: 👉 [CoffeeShopApp](https://github.com/AG-code32/CoffeeShopApp/)
+Check out my other Android projects: 
+  - ☕ [Coffee Shop App](https://github.com/AG-code32/CoffeeShopApp/)
+  - 🍽️ [Food Catalog App](https://github.com/AG-code32/FoodOrderApp/)
 
 ---
 
