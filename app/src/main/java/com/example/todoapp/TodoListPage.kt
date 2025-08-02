@@ -1,7 +1,10 @@
 package com.example.todoapp
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -9,6 +12,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,6 +33,8 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Locale
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.getValue
@@ -37,13 +43,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.SwipeToDismissBoxValue
 
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TodoListPage (viewModel: TodoViewModel){
     val todoList by viewModel.todoList.observeAsState()
     var inputText by remember {
         mutableStateOf("")
     }
+
+    var showDialog by remember { mutableStateOf(false) }
+    var editingText by remember { mutableStateOf("") }
+    var editingTodoId by remember { mutableStateOf<Int?>(null) }
 
     Column (
         modifier = Modifier
@@ -54,15 +70,22 @@ fun TodoListPage (viewModel: TodoViewModel){
         Row (
             modifier = Modifier.fillMaxWidth()
                 .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            verticalAlignment = Alignment.CenterVertically
         ){
-            OutlinedTextField(/*modifier = Modifier.weight(1f),*/value = inputText, onValueChange = {
-                inputText = it
-            })
+            OutlinedTextField ( /*modifier = Modifier.weight(1f),*/
+                value = inputText,
+                onValueChange = { inputText = it },
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp),
+                placeholder = { Text("Add a Task") }
+            )
             Button(onClick = {
                 viewModel.addTodo(inputText)
                 inputText = ""
-            }) {
+            },
+                modifier = Modifier.height(56.dp)
+            ) {
                 Text(text = "Add")
             }
         }
@@ -70,13 +93,115 @@ fun TodoListPage (viewModel: TodoViewModel){
         todoList?.let {
             LazyColumn (
                 content = {
-                    itemsIndexed(it){ index: Int, item: Todo ->
-                        TodoItem(item = item, onDelete = {
-                            viewModel.deleteTodo(item.id)
-                        })
+
+                    items(it) { item ->
+
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = {
+                                if (it == SwipeToDismissBoxValue.EndToStart) {
+                                    viewModel.deleteTodo(item.id)
+                                    true
+                                } else false
+                            }
+                        )
+
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            enableDismissFromStartToEnd = false,
+                            enableDismissFromEndToStart = true,
+                            backgroundContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        /*.background(Color.Red)*/
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = Color.White
+                                    )
+                                }
+                            },
+                            content = {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp)
+                                        .background(Color(0xFF81D4FA), RoundedCornerShape(12.dp))
+                                        .combinedClickable(
+                                            onClick = { /* nada */ },
+                                            onLongClick = {
+                                                editingText = item.title
+                                                editingTodoId = item.id
+                                                showDialog = true
+                                            }
+                                        )
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.Top,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = item.title,
+                                        fontSize = 16.sp,
+                                        color = Color.Black,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .padding(end = 8.dp)
+                                    )
+
+                                    IconButton(
+                                        onClick = { viewModel.deleteTodo(item.id) },
+                                        modifier = Modifier.align(Alignment.Top)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete",
+                                            tint = Color.Black
+                                        )
+                                    }
+                                }
+                            }
+                        )
                     }
-                }
+                    }
             )
+
+            /*
+            *
+            *
+            *
+            * */
+
+            if (showDialog && editingTodoId != null) {
+                AlertDialog(
+                    onDismissRequest = { showDialog = false },
+                    title = { Text("Edit Task") },
+                    text = {
+                        OutlinedTextField(
+                            value = editingText,
+                            onValueChange = { editingText = it },
+                            label = { Text("New text") }
+                        )
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            viewModel.editTodo(editingTodoId!!, editingText)
+                            showDialog = false
+                        }) {
+                            Text("Save")
+                        }
+                    },
+                    dismissButton = {
+                        Button(onClick = { showDialog = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+
+
         }?: Text(
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center,

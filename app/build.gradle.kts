@@ -50,6 +50,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation("androidx.compose.runtime:runtime-livedata:1.8.3")
+    implementation("androidx.compose.foundation:foundation:1.6.4")
+    implementation("androidx.compose.material:material:1.6.4")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

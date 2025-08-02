@@ -37,5 +37,11 @@ class TodoViewModel : ViewModel() {
         _todoList.value = currentList.filterNot { it.id == id }
     }
 
+    fun editTodo(id: Int, newText: String) {
+        _todoList.value = _todoList.value?.map{
+            if (it.id == id) it.copy(title = newText) else it
+        }
+    }
+
 
 }
