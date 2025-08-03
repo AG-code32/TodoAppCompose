@@ -44,9 +44,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.runtime.rememberCoroutineScope
 
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -60,6 +62,9 @@ fun TodoListPage (viewModel: TodoViewModel){
     var showDialog by remember { mutableStateOf(false) }
     var editingText by remember { mutableStateOf("") }
     var editingTodoId by remember { mutableStateOf<Int?>(null) }
+
+/*    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()*/
 
     Column (
         modifier = Modifier
@@ -80,9 +85,12 @@ fun TodoListPage (viewModel: TodoViewModel){
                     .padding(end = 8.dp),
                 placeholder = { Text("Add a Task") }
             )
-            Button(onClick = {
-                viewModel.addTodo(inputText)
-                inputText = ""
+            Button(
+                onClick = {
+                    if (inputText.trim().isNotEmpty()) {
+                        viewModel.addTodo(inputText.trim())
+                        inputText = ""
+                    }
             },
                 modifier = Modifier.height(56.dp)
             ) {
@@ -94,7 +102,7 @@ fun TodoListPage (viewModel: TodoViewModel){
             LazyColumn (
                 content = {
 
-                    items(it) { item ->
+                    items(it, key = { it.id }) { item ->
 
                         val dismissState = rememberSwipeToDismissBoxState(
                             confirmValueChange = {
@@ -113,7 +121,7 @@ fun TodoListPage (viewModel: TodoViewModel){
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        /*.background(Color.Red)*/
+                                        .background(Color(0x0581D4FA))
                                         .padding(16.dp),
                                     contentAlignment = Alignment.CenterEnd
                                 ) {

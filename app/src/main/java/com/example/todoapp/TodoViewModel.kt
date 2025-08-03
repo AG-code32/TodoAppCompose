@@ -34,7 +34,7 @@ class TodoViewModel : ViewModel() {
 
     fun deleteTodo(id: Int) {
         val currentList = _todoList.value ?: emptyList()
-        _todoList.value = currentList.filterNot { it.id == id }
+        _todoList.value = _todoList.value?.filter { it.id != id }
     }
 
     fun editTodo(id: Int, newText: String) {
