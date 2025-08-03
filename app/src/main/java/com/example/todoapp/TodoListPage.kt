@@ -1,6 +1,7 @@
 package com.example.todoapp
 
-import java.util.Date
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -20,25 +21,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.text.SimpleDateFormat
-import java.util.Locale
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -46,15 +41,39 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextDecoration
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.concurrent.TimeUnit
+
+fun getTaskBackgroundColor(todo: Todo): Color {
+    val now = System.currentTimeMillis()
+    val timeDiff = todo.dueAt - now
+
+    val hours = TimeUnit.MILLISECONDS.toHours(timeDiff)
+    val days = TimeUnit.MILLISECONDS.toDays(timeDiff)
+
+    return when {
+        hours <= 5 -> Color(0xFFFFCDD2) // 🔴 rojo claro
+        days < 1 -> Color(0xFFFFF9C4)   // 🟠 amarillo/naranja claro
+        todo.isDone -> Color(0xFFB2DFDB) // ✅ completado
+        else -> Color(0xFF81D4FA)        // 🔵 por defecto
+    }
+}
 
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -80,6 +99,14 @@ fun TodoListPage(viewModel: TodoViewModel) {
         TodoFilter.COMPLETED -> todoList?.filter { it.isDone }
     }
 
+    val context = LocalContext.current
+
+    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+    var selectedTime by remember { mutableStateOf<LocalTime?>(null) }
+
+    val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
@@ -91,7 +118,7 @@ fun TodoListPage(viewModel: TodoViewModel) {
                 .padding(WindowInsets.statusBars.asPaddingValues())
                 .padding(innerPadding)
         ) {
-            Row(
+            Row(    // box and add button
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp),
@@ -111,9 +138,22 @@ fun TodoListPage(viewModel: TodoViewModel) {
                 /**/
                 Button(
                     onClick = {
-                        if (inputText.trim().isNotEmpty()) {
-                            viewModel.addTodo(inputText.trim())
+                        if (
+                            inputText.trim().isNotEmpty() &&
+                            selectedDate != null &&
+                            selectedTime != null
+                        ) {
+                            val dueAtMillis = LocalDateTime.of(selectedDate, selectedTime)
+                                .atZone(ZoneId.systemDefault())
+                                .toInstant()
+                                .toEpochMilli()
+
+                            viewModel.addTodo(inputText.trim(), dueAtMillis)
+
+                            // Reset form
                             inputText = ""
+                            selectedDate = null
+                            selectedTime = null
                         }
                     },
                     modifier = Modifier.height(56.dp)
@@ -122,8 +162,33 @@ fun TodoListPage(viewModel: TodoViewModel) {
                 }
             }
 
+            Row(    // date and time
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(onClick = {
+                    val today = LocalDate.now()
+                    DatePickerDialog(context, { _, year, month, dayOfMonth ->
+                        selectedDate = LocalDate.of(year, month + 1, dayOfMonth)
+                    }, today.year, today.monthValue - 1, today.dayOfMonth).show()
+                }) {
+                    Text(selectedDate?.format(dateFormatter) ?: "Due date")
+                }
 
-            Row(
+                Button(onClick = {
+                    val now = LocalTime.now()
+                    TimePickerDialog(context, { _, hour, minute ->
+                        selectedTime = LocalTime.of(hour, minute)
+                    }, now.hour, now.minute, true).show()
+                }) {
+                    Text(selectedTime?.format(timeFormatter) ?: "Due time")
+                }
+
+            }
+
+            Row(    // filter
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
@@ -149,7 +214,7 @@ fun TodoListPage(viewModel: TodoViewModel) {
                 }
             }
 
-
+            // List of tasks
             filteredList?.let {
                 LazyColumn(
                     content = {
@@ -160,8 +225,24 @@ fun TodoListPage(viewModel: TodoViewModel) {
                                 confirmValueChange = {
                                     if (it == SwipeToDismissBoxValue.EndToStart) {
                                         coroutineScope.launch {
+
+                                            val deletedItem = item
                                             viewModel.deleteTodo(item.id)
-                                            snackbarHostState.showSnackbar("Task deleted")
+
+                                            coroutineScope.launch {
+                                                val result = snackbarHostState.showSnackbar(
+                                                    message = "Task deleted",
+                                                    actionLabel = "Undo",
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                                if (result == SnackbarResult.ActionPerformed) {
+                                                    viewModel.addTodoBack(deletedItem)
+                                                }
+                                            }
+                                            /*viewModel.deleteTodo(item.id)
+                                        snackbarHostState.showSnackbar("Task deleted")*/
+
+
                                         }
                                         true
                                     } else {
@@ -195,12 +276,8 @@ fun TodoListPage(viewModel: TodoViewModel) {
                                             .fillMaxWidth()
                                             .padding(8.dp)
                                             .background(
-                                                if (item.isDone) Color(0xFFB2DFDB) else Color(
-                                                    0xFF81D4FA
-                                                ), // greenish if done, blue if not
+                                                getTaskBackgroundColor(item),
                                                 RoundedCornerShape(12.dp)
-                                                /*Color(0xFF81D4FA),
-                                                    RoundedCornerShape(12.dp)*/
                                             )
                                             .combinedClickable(
                                                 onClick = { /* nada */ },
@@ -234,10 +311,25 @@ fun TodoListPage(viewModel: TodoViewModel) {
 
                                         IconButton(
                                             onClick = {
+
+                                                val deletedItem = item
                                                 viewModel.deleteTodo(item.id)
+
                                                 coroutineScope.launch {
-                                                    snackbarHostState.showSnackbar("Task deleted")
+                                                    val result = snackbarHostState.showSnackbar(
+                                                        message = "Task deleted",
+                                                        actionLabel = "Undo",
+                                                        duration = SnackbarDuration.Short
+                                                    )
+                                                    if (result == SnackbarResult.ActionPerformed) {
+                                                        viewModel.addTodoBack(deletedItem)
+                                                    }
                                                 }
+
+                                                /*viewModel.deleteTodo(item.id)
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Task deleted")
+                                            }*/
                                             },
                                             modifier = Modifier.align(Alignment.Top)
                                         ) {
@@ -256,10 +348,10 @@ fun TodoListPage(viewModel: TodoViewModel) {
                 )
 
                 /*
-                *
-                *
-                *
-                * */
+            *
+            *
+            *
+            * */
 
                 if (showDialog && editingTodoId != null) {
                     AlertDialog(
@@ -307,41 +399,4 @@ fun TodoListPage(viewModel: TodoViewModel) {
 
 }
 
-/*@Composable
-fun TodoItem(item: Todo, onDelete: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxWidth()
-            .padding(8.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.primary)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-
-    ) {
-        Column(
-            modifier = Modifier.weight(1f)
-        )
-        {
-            Text(
-                text = SimpleDateFormat("HH:mm, dd/MM", Locale.ENGLISH).format(Date(item.createdAt)),
-                fontSize = 10.sp,
-                color = Color.LightGray
-            )
-            Text(
-                text = item.title,
-                fontSize = 20.sp,
-                color = Color.White
-            )
-        }
-        IconButton(onClick = onDelete) {
-            Icon(
-                painter = painterResource(id = R.drawable.baseline_delete_24),
-                contentDescription = "Delete",
-                tint = Color.White
-            )
-        }
-    }
-}*/
 
