@@ -43,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -50,6 +51,7 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.text.style.TextDecoration
 import kotlinx.coroutines.launch
 
 
@@ -67,6 +69,14 @@ fun TodoListPage(viewModel: TodoViewModel) {
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    var filter by remember { mutableStateOf(TodoFilter.ALL) }
+
+    val filteredList = when (filter) {
+        TodoFilter.ALL -> todoList
+        TodoFilter.ACTIVE -> todoList?.filter { !it.isDone }
+        TodoFilter.COMPLETED -> todoList?.filter { it.isDone }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -93,6 +103,10 @@ fun TodoListPage(viewModel: TodoViewModel) {
                         .padding(end = 8.dp),
                     placeholder = { Text("Add a Task") }
                 )
+                /**/
+
+
+                /**/
                 Button(
                     onClick = {
                         if (inputText.trim().isNotEmpty()) {
@@ -106,7 +120,35 @@ fun TodoListPage(viewModel: TodoViewModel) {
                 }
             }
 
-            todoList?.let {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(
+                    onClick = { filter = TodoFilter.ALL },
+                    enabled = filter != TodoFilter.ALL
+                ) {
+                    Text("All")
+                }
+                Button(
+                    onClick = { filter = TodoFilter.ACTIVE },
+                    enabled = filter != TodoFilter.ACTIVE
+                ) {
+                    Text("Active")
+                }
+                Button(
+                    onClick = { filter = TodoFilter.COMPLETED },
+                    enabled = filter != TodoFilter.COMPLETED
+                ) {
+                    Text("Completed")
+                }
+            }
+
+
+            filteredList?.let {
                 LazyColumn(
                     content = {
 
@@ -151,8 +193,12 @@ fun TodoListPage(viewModel: TodoViewModel) {
                                             .fillMaxWidth()
                                             .padding(8.dp)
                                             .background(
-                                                Color(0xFF81D4FA),
+                                                if (item.isDone) Color(0xFFB2DFDB) else Color(
+                                                    0xFF81D4FA
+                                                ), // greenish if done, blue if not
                                                 RoundedCornerShape(12.dp)
+                                                /*Color(0xFF81D4FA),
+                                                    RoundedCornerShape(12.dp)*/
                                             )
                                             .combinedClickable(
                                                 onClick = { /* nada */ },
@@ -166,13 +212,22 @@ fun TodoListPage(viewModel: TodoViewModel) {
                                         verticalAlignment = Alignment.Top,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
+                                        // Checkbox aligned to center vertically
+                                        Checkbox(
+                                            checked = item.isDone,
+                                            onCheckedChange = {
+                                                viewModel.toggleTodoDone(item.id)
+                                            }
+                                        )
+                                        // Title text, style depends on isDone
                                         Text(
                                             text = item.title,
                                             fontSize = 16.sp,
                                             color = Color.Black,
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .padding(end = 8.dp)
+                                                .padding(start = 8.dp),
+                                            textDecoration = if (item.isDone) TextDecoration.LineThrough else null
                                         )
 
                                         IconButton(
@@ -288,18 +343,3 @@ fun TodoItem(item: Todo, onDelete: () -> Unit) {
     }
 }
 
-/*
-@Composable
-fun TodoListScreen(todos: List<Todo>) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(WindowInsets.statusBars.asPaddingValues())
-    ) {
-        LazyColumn {
-            items(todos) { todo ->
-                TodoItem(item = todo)
-            }
-        }
-    }
-}*/

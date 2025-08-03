@@ -43,5 +43,10 @@ class TodoViewModel : ViewModel() {
         }
     }
 
+    fun toggleTodoDone(id: Int) {
+        _todoList.value = _todoList.value?.map {
+            if (it.id == id) it.copy(isDone = !it.isDone) else it
+        }
+    }
 
 }

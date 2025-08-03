@@ -8,6 +8,7 @@ data class Todo (
     var id: Int,
     var title: String,
     var createdAt: Date,
+    val isDone: Boolean = false
     )
 
 
