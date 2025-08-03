@@ -1,5 +1,6 @@
 package com.example.todoapp
 
+/*
 import java.time.Instant
 import java.util.Date
 
@@ -21,3 +22,15 @@ fun getFakeTodo() : List<Todo>{
         Todo( 4, "this will be my forth todo so that i can use it in UI ", Date.from(Instant.now()))
         );
 }
+*/
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "todos")
+data class Todo(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val title: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    val isDone: Boolean = false
+)

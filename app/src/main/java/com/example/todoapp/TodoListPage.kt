@@ -1,5 +1,6 @@
 package com.example.todoapp
 
+import java.util.Date
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -50,6 +51,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.style.TextDecoration
 import kotlinx.coroutines.launch
@@ -58,7 +60,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TodoListPage(viewModel: TodoViewModel) {
-    val todoList by viewModel.todoList.observeAsState()
+    val todoList by viewModel.todoList.collectAsState()
     var inputText by remember {
         mutableStateOf("")
     }
@@ -305,7 +307,7 @@ fun TodoListPage(viewModel: TodoViewModel) {
 
 }
 
-@Composable
+/*@Composable
 fun TodoItem(item: Todo, onDelete: () -> Unit) {
     Row(
         modifier = Modifier
@@ -323,7 +325,7 @@ fun TodoItem(item: Todo, onDelete: () -> Unit) {
         )
         {
             Text(
-                text = SimpleDateFormat("HH:mm:aa, dd/mm", Locale.ENGLISH).format(item.createdAt),
+                text = SimpleDateFormat("HH:mm, dd/MM", Locale.ENGLISH).format(Date(item.createdAt)),
                 fontSize = 10.sp,
                 color = Color.LightGray
             )
@@ -341,5 +343,5 @@ fun TodoItem(item: Todo, onDelete: () -> Unit) {
             )
         }
     }
-}
+}*/
 
